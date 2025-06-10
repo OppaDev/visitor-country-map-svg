@@ -3,7 +3,7 @@
  * Plugin Name: Visitor Country Map - Top 5 SVG
  * Plugin URI: https://tusitio.com/
  * Description: Muestra un mapa SVG interactivo resaltando el top 5 de países con más visitas y una leyenda, cargando el SVG desde un archivo.
- * Version: 2.6 
+ * Version: 2.6
  * Author: Tu Nombre (Adaptado para SVG desde archivo)
  * License: GPL2
  */
@@ -39,22 +39,39 @@ function visitor_country_map_create_table() {
 
 function get_visitor_country_map_country_details() {
     $ip = $_SERVER['REMOTE_ADDR'];
-    // Descomentar para pruebas locales con IPs aleatorias
     
-    if (in_array($ip, ['127.0.0.1', '::1'])) {
-        $test_ips = ['8.8.8.8', '190.233.248.204', '201.218.15.255', '181.65.163.255', '81.9.15.10', '1.1.1.1', '103.102.166.224']; // US, PE, AR, CO, ES, AU, ID
-        $ip = $test_ips[array_rand($test_ips)];
-    }
+    // Descomentar y ajustar para pruebas locales si es necesario
+    // if (in_array($ip, ['127.0.0.1', '::1']) || strpos($ip, '192.168.') === 0) {
+    //     $test_ips = ['8.8.8.8', '190.233.248.204', '201.218.15.255', '181.65.163.255', '81.9.15.10', '1.1.1.1', '103.102.166.224']; // US, PE, AR, CO, ES, AU, ID
+    //     $ip = $test_ips[array_rand($test_ips)];
+    //     // error_log("Visitor Map: Using test IP: " . $ip); // Para depuración
+    // }
     
     $response = wp_remote_get("https://ipapi.co/{$ip}/json/", array('user-agent' => 'WordPress Visitor Country Map Plugin/' . get_bloginfo('version')));
-    if (is_wp_error($response)) { return array('country_code' => 'XX', 'country_name' => 'Unknown (API Error)'); }
+    
+    if (is_wp_error($response)) { 
+        // error_log("Visitor Map API Error: " . $response->get_error_message());
+        return array('country_code' => 'XX', 'country_name' => 'Unknown (API Error)'); 
+    }
+
     $body = wp_remote_retrieve_body($response);
     $data = json_decode($body, true);
-    if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) { return array('country_code' => 'XX', 'country_name' => 'Unknown (JSON Error)');}
-    if (isset($data['error']) && $data['error']) { return array('country_code' => 'XX', 'country_name' => 'Unknown (API Response Error: ' . esc_html(isset($data['reason']) ? $data['reason'] : 'Unknown reason') . ')' ); }
+
+    if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) { 
+        // error_log("Visitor Map JSON Error. Body: " . $body);
+        return array('country_code' => 'XX', 'country_name' => 'Unknown (JSON Error)');
+    }
+
+    if (isset($data['error']) && $data['error']) { 
+        // error_log("Visitor Map API Response Error: " . (isset($data['reason']) ? $data['reason'] : 'Unknown reason') . " for IP: " . $ip);
+        return array('country_code' => 'XX', 'country_name' => 'Unknown (API Response Error: ' . esc_html(isset($data['reason']) ? $data['reason'] : 'Rate limit or other issue') . ')' ); 
+    }
+
     if (isset($data['country_code']) && isset($data['country_name'])) {
         return array('country_code' => strtoupper($data['country_code']), 'country_name' => $data['country_name']);
     }
+    
+    // error_log("Visitor Map: Unknown country data for IP: " . $ip . " Data: " . print_r($data, true));
     return array('country_code' => 'XX', 'country_name' => 'Unknown');
 }
 
@@ -69,6 +86,7 @@ function register_visitor_country_map_visit() {
     global $wpdb;
     $table_name = $wpdb->prefix . 'visitor_countries';
     $country_data = get_visitor_country_map_country_details();
+
     if ($country_data['country_code'] === 'XX' || empty($country_data['country_code'])) { return; }
 
     $existing = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE country_code = %s", $country_data['country_code']));
@@ -107,6 +125,7 @@ function visitor_country_map_shortcode_output($atts) {
         'map_max_width' => '100%', 
         'default_country_color' => '#E0E0E0', 
         'border_color' => '#FFFFFF', 
+        'svg_file_name' => 'world.svg', // Nuevo atributo para el nombre del archivo SVG
     ), $atts);
 
     wp_enqueue_script('visitor-country-svg-map-script', plugin_dir_url(__FILE__) . 'js/visitor-svg-map.js', array('jquery'), '1.0', true);
@@ -136,31 +155,29 @@ function visitor_country_map_shortcode_output($atts) {
     ));
 
     // --- MODIFICACIÓN PRINCIPAL: Cargar SVG desde archivo ---
-    $svg_file_path = plugin_dir_path(__FILE__) . 'world.svg';
+    $svg_file_path = plugin_dir_path(__FILE__) . sanitize_file_name($atts['svg_file_name']); // Usa el atributo
     $svg_map_html = '';
 
     if (file_exists($svg_file_path) && is_readable($svg_file_path)) {
-        // Es importante envolver el contenido del SVG en el div con id="map-world"
-        // si el archivo world.svg solo contiene la etiqueta <svg>...</svg>
-        // Si world.svg ya contiene <div id="map-world">...</div>, puedes asignar directamente.
         $svg_content = file_get_contents($svg_file_path);
-        // Asumimos que world.svg solo contiene la etiqueta <svg> y su contenido.
-        // Si no es así y ya tiene el div#map-world, esta línea no es necesaria o debe ajustarse.
-        if (strpos(strtolower(trim($svg_content)), '<svg') === 0) {
+        
+        // Verifica si el contenido del archivo ya tiene el div#map-world
+        if (strpos(strtolower(trim($svg_content)), '<div id="map-world"') === 0) {
+            $svg_map_html = $svg_content;
+        } 
+        // Verifica si el contenido es solo la etiqueta <svg>
+        elseif (strpos(strtolower(trim($svg_content)), '<svg') === 0) {
              $svg_map_html = '<div id="map-world" class="w-100 h-100 jvm-container" style="background-color: transparent;">' . $svg_content . '</div>';
         } else {
-            // Si el archivo SVG ya tiene la estructura de div esperada, o es diferente
-            // $svg_map_html = $svg_content; // O maneja el error
-            $svg_map_html = '<p>Error: El archivo world.svg no parece tener el formato esperado (debe empezar con <svg>).</p>';
+            $svg_map_html = '<p>Error: El archivo <code>' . esc_html($atts['svg_file_name']) . '</code> no parece tener el formato SVG esperado (debe empezar con <svg> o <div id="map-world">).</p>';
              if (current_user_can('manage_options')) {
                 $svg_map_html .= '<p>Ruta comprobada: ' . esc_html($svg_file_path) . '</p>';
             }
         }
-
     } else {
-        $svg_map_html = '<p>Error: No se pudo cargar el archivo del mapa (world.svg).';
-        if (current_user_can('manage_options')) { // Mostrar más detalles a los administradores
-            $svg_map_html .= ' Por favor, asegúrate de que el archivo <code>world.svg</code> exista en la raíz de la carpeta del plugin y sea legible.';
+        $svg_map_html = '<p>Error: No se pudo cargar el archivo del mapa (<code>' . esc_html($atts['svg_file_name']) . '</code>).';
+        if (current_user_can('manage_options')) {
+            $svg_map_html .= ' Por favor, asegúrate de que el archivo exista en la raíz de la carpeta del plugin (<code>' . esc_html(plugin_dir_path(__FILE__)) . '</code>) y sea legible.';
             $svg_map_html .= ' Ruta comprobada: ' . esc_html($svg_file_path);
         }
         $svg_map_html .= '</p>';
@@ -196,15 +213,17 @@ function visitor_country_map_shortcode_output($atts) {
             height: auto; 
             display: block;
         }
-        /* Fallbacks para variables CSS (Tabler) */
+        /* Fallbacks para variables CSS (Tabler) si no están definidas globalmente */
         :root {
             --tblr-primary: #206bc4; 
             --tblr-border-color: #e6e7e9; 
             --tblr-bg-surface-secondary: #f1f5f9; 
         }
-        .jvm-region { 
-            stroke: var(--tblr-border-color, #CCCCCC);
-            stroke-width: 0.5; 
+        /* Asegura que las regiones SVG tengan un estilo base si JS falla o para regiones no controladas */
+        .visitor-svg-map-container svg .jvm-region { 
+            stroke: var(--tblr-border-color, #CCCCCC); /* Usa variable o fallback */
+            stroke-width: 0.5; /* Ajusta según sea necesario */
+            /* El fill será controlado por JS o usará el fill original del SVG */
         }
     </style>
     <?php
@@ -213,7 +232,7 @@ function visitor_country_map_shortcode_output($atts) {
 add_shortcode('visitor_country_map', 'visitor_country_map_shortcode_output'); 
 
 
-// === PÁGINA DE ADMINISTRACIÓN (SIN CAMBIOS RESPECTO A LA VERSIÓN ANTERIOR) ===
+// === PÁGINA DE ADMINISTRACIÓN (Adaptada ligeramente para svg_file_name) ===
 add_action('admin_menu', 'visitor_country_map_admin_menu');
 function visitor_country_map_admin_menu() {
     add_options_page(
@@ -248,17 +267,19 @@ function visitor_country_map_admin_page_html() {
         <h2>Cómo usar el Mapa de Países SVG</h2>
         <p>Para mostrar el mapa SVG con el top 5 de países en cualquier página o entrada, usa el shortcode:</p>
         <code>[visitor_country_map]</code>
+        <p>Asegúrate de que un archivo llamado <code>world.svg</code> (o el nombre que especifiques) exista en la raíz del directorio del plugin (<code><?php echo esc_html(plugin_dir_path(__FILE__)); ?></code>).</p>
         <p>Puedes personalizar algunos aspectos:</p>
-        <code>[visitor_country_map height="500px" map_max_width="800px" default_country_color="#DDDDDD"]</code>
+        <code>[visitor_country_map height="500px" map_max_width="800px" default_country_color="#DDDDDD" svg_file_name="mi_mapa.svg"]</code>
         <p>Atributos disponibles:
             <ul>
                 <li><code>height</code>: Altura total del contenedor (mapa + leyenda). Ejemplo: <code>500px</code>, <code>auto</code>.</li>
                 <li><code>map_max_width</code>: Ancho máximo del mapa. Ejemplo: <code>800px</code>, <code>100%</code>.</li>
                 <li><code>default_country_color</code>: Color hexadecimal para los países no destacados. Ejemplo: <code>#DDDDDD</code>.</li>
                 <li><code>border_color</code>: Color hexadecimal para los bordes de los países en el SVG. Ejemplo: <code>#FFFFFF</code>.</li>
+                <li><code>svg_file_name</code>: Nombre del archivo SVG a cargar (debe estar en la raíz del plugin). Por defecto: <code>world.svg</code>.</li>
             </ul>
         </p>
-        <p><strong>Nota:</strong> La API Key de MapTiler Cloud (configurable arriba) no es utilizada por este mapa SVG, pero puede ser útil para futuras funcionalidades o si deseas implementar otros tipos de mapas.</p>
+        <p><strong>Nota:</strong> La API Key de MapTiler Cloud (configurable arriba) no es utilizada por este mapa SVG, pero puede ser útil para futuras funcionalidades.</p>
         
         <hr>
         <h2>Estadísticas Completas por País</h2>
