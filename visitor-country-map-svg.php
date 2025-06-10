@@ -3,11 +3,10 @@
  * Plugin Name: Visitor Country Map - Top 5 SVG
  * Plugin URI: https://tusitio.com/
  * Description: Muestra un mapa SVG interactivo resaltando el top 5 de países con más visitas y una leyenda, cargando el SVG desde un archivo.
- * Version: 2.8
+ * Version: 2.9.1
  * Author: Tu Nombre (Versión Corregida)
  * License: GPL2
- * 
- * CORRECCIONES APLICADAS EN v2.8:
+ *  * CORRECCIONES APLICADAS EN v2.9.1:
  * ✅ Mapa SVG se visualiza correctamente en contenedor responsive
  * ✅ Geolocalización mejorada con múltiples APIs de respaldo
  * ✅ Sistema de conteo de visitas optimizado (evita duplicados por IP/día)
@@ -15,6 +14,9 @@
  * ✅ UI moderna y responsive para móviles y desktop
  * ✅ Sistema de cache optimizado para mejor rendimiento
  * ✅ Prevención de errores y mejor manejo de excepciones
+ * ✅ Eliminadas configuraciones de API no utilizadas (simplificado)
+ * 🔧 Corregido el problema de registro de visitas desde el panel admin
+ * 🔧 Añadidas herramientas de debugging y testing
  */
 
 // Prevenir acceso directo
@@ -40,13 +42,8 @@ function visitor_country_map_create_table() {
         UNIQUE KEY country_code (country_code),
         KEY visit_count (visit_count),
         KEY last_visit (last_visit)
-    ) $charset_collate;";
-    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    ) $charset_collate;";    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($sql);
-
-    if (false === get_option('visitor_country_map_maptiler_api_key')) {
-        add_option('visitor_country_map_maptiler_api_key', '');
-    }
     
     // Opciones adicionales del plugin
     if (false === get_option('visitor_country_map_cache_duration')) {
@@ -165,13 +162,19 @@ function register_visitor_country_map_visit() {
         return; 
     }
 
+    // Llamar a la función de registro real
+    register_visit_to_database();
+}
+
+function register_visit_to_database() {
     // Prevenir registros duplicados - Usar una clave única por IP y día
     $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
     $today = date('Y-m-d');
     $transient_key = 'visitor_country_registered_' . md5($ip . $today);
     
     if (get_transient($transient_key)) {
-        return;
+        error_log("Visitor Map: Duplicate visit blocked for IP: " . $ip);
+        return false;
     }
 
     global $wpdb;
@@ -179,8 +182,8 @@ function register_visitor_country_map_visit() {
     $country_data = get_visitor_country_map_country_details();
 
     if ($country_data['country_code'] === 'XX' || empty($country_data['country_code'])) { 
-        error_log("Visitor Map: Not registering visit - Invalid country data");
-        return; 
+        error_log("Visitor Map: Not registering visit - Invalid country data for IP: " . $ip);
+        return false; 
     }
 
     // Registrar o actualizar visita
@@ -215,13 +218,16 @@ function register_visitor_country_map_visit() {
         set_transient($transient_key, true, DAY_IN_SECONDS);
         
         // Log para debugging
-        error_log("Visitor Map: Registered visit from " . $country_data['country_name'] . " (" . $country_data['country_code'] . ")");
+        error_log("Visitor Map: Successfully registered visit from " . $country_data['country_name'] . " (" . $country_data['country_code'] . ") for IP: " . $ip);
         
         // Limpiar cache de estadísticas
         delete_transient('visitor_country_map_stats_cache');
         delete_transient('visitor_country_map_stats_cache_5');
+        
+        return true;
     } else {
-        error_log("Visitor Map: Error registering visit from " . $country_data['country_name']);
+        error_log("Visitor Map: Error registering visit from " . $country_data['country_name'] . " for IP: " . $ip);
+        return false;
     }
 }
 add_action('wp', 'register_visitor_country_map_visit');
@@ -263,7 +269,7 @@ function visitor_country_map_shortcode_output($atts) {
         'animation' => 'true',
     ), $atts);
 
-    wp_enqueue_script('visitor-country-svg-map-script', plugin_dir_url(__FILE__) . 'js/visitor-svg-map.js', array('jquery'), '2.8', true);
+    wp_enqueue_script('visitor-country-svg-map-script', plugin_dir_url(__FILE__) . 'js/visitor-svg-map.js', array('jquery'), '2.9.1', true);
     
     $top_countries_data = get_visitor_country_map_statistics(5);
     $colors = ['#FF5733', '#33FF57', '#3357FF', '#FF33A1', '#F1C40F']; 
@@ -474,8 +480,7 @@ function visitor_country_map_admin_page_html() {
         }
         add_settings_error('visitor_country_map_messages', 'cache_cleared', __('Cache limpiado correctamente.', 'visitor-country-map'), 'updated');
     }
-    
-    // Manejar forzar visita para pruebas
+      // Manejar forzar visita para pruebas
     if (isset($_POST['force_visit']) && wp_verify_nonce($_POST['force_visit_field'], 'force_visit_nonce')) {
         $test_ips = [
             '8.8.8.8' => 'Estados Unidos',
@@ -495,13 +500,17 @@ function visitor_country_map_admin_page_html() {
         $transient_key = 'visitor_country_registered_' . md5($random_ip . $today);
         delete_transient($transient_key);
         
-        // Registrar visita
-        register_visitor_country_map_visit();
+        // Llamar directamente a la función de registro de base de datos
+        $result = register_visit_to_database();
         
         // Restaurar IP original
         $_SERVER['REMOTE_ADDR'] = $original_ip;
         
-        add_settings_error('visitor_country_map_messages', 'visit_simulated', '✅ Visita simulada registrada desde ' . $test_ips[$random_ip] . ' (' . $random_ip . ')', 'updated');
+        if ($result) {
+            add_settings_error('visitor_country_map_messages', 'visit_simulated', '✅ Visita simulada registrada exitosamente desde ' . $test_ips[$random_ip] . ' (' . $random_ip . ')', 'updated');
+        } else {
+            add_settings_error('visitor_country_map_messages', 'visit_failed', '❌ Error al simular visita desde ' . $test_ips[$random_ip] . ' (' . $random_ip . '). Revisa los logs.', 'error');
+        }
     }
     
     if (isset($_GET['settings-updated'])) {
@@ -510,24 +519,20 @@ function visitor_country_map_admin_page_html() {
     settings_errors('visitor_country_map_messages');
     ?>
     <div class="wrap">
-        <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
-        
-        <div class="notice notice-info">
+        <h1><?php echo esc_html(get_admin_page_title()); ?></h1>        <div class="notice notice-info">
             <p><strong>📋 Estado del Plugin:</strong></p>
             <ul>
                 <li>✅ Plugin activo y funcionando</li>
                 <li>📁 Archivo SVG: <?php echo file_exists(plugin_dir_path(__FILE__) . 'world.svg') ? '✅ Encontrado' : '❌ No encontrado'; ?></li>
                 <li>📊 Total de países registrados: <?php echo count(get_visitor_country_map_statistics()); ?></li>
+                <li>🗃️ Tabla de BD: <?php 
+                    global $wpdb;
+                    $table_name = $wpdb->prefix . 'visitor_countries';
+                    $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name;
+                    echo $table_exists ? '✅ Existe' : '❌ No existe';
+                ?></li>
             </ul>
         </div>
-        
-        <form action="options.php" method="post">
-            <?php
-            settings_fields('visitor_country_map_options');
-            do_settings_sections('visitor_country_map_options');
-            submit_button('Guardar Ajustes');
-            ?>
-        </form>
         
         <hr>
         <h2>Cómo usar el Mapa de Países SVG</h2>
@@ -537,14 +542,38 @@ function visitor_country_map_admin_page_html() {
         <code>[visitor_country_map height="500px" map_max_width="800px" default_country_color="#DDDDDD"]</code>
         
         <hr>
-        <h2>🔧 Herramientas de Desarrollo</h2>
-        <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 15px 0;">
+        <h2>🔧 Herramientas de Desarrollo</h2>        <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 15px 0;">
             <h4>🧪 Simular Visita (Para Pruebas)</h4>
             <p>Haz clic para registrar una visita desde un país aleatorio:</p>
             <form method="post" style="margin: 10px 0;">
                 <input type="hidden" name="force_visit" value="1">
                 <?php wp_nonce_field('force_visit_nonce', 'force_visit_field'); ?>
                 <button type="submit" class="button button-secondary">🌍 Simular Visita Aleatoria</button>
+            </form>
+            
+            <hr style="margin: 15px 0;">
+            <h4>🔍 Test de Geolocalización</h4>
+            <p>Probar detección de país con IP de prueba:</p>
+            <?php
+            // Test rápido de geolocalización
+            if (isset($_POST['test_geo'])) {
+                $test_ip = '8.8.8.8'; // IP de prueba de Estados Unidos
+                $original_ip = $_SERVER['REMOTE_ADDR'] ?? '';
+                $_SERVER['REMOTE_ADDR'] = $test_ip;
+                
+                $geo_result = get_visitor_country_map_country_details();
+                $_SERVER['REMOTE_ADDR'] = $original_ip;
+                
+                echo '<div style="background: #e7f3ff; padding: 10px; border-radius: 5px; margin: 10px 0;">';
+                echo '<strong>Resultado del test:</strong><br>';
+                echo 'IP probada: ' . $test_ip . '<br>';
+                echo 'País detectado: ' . esc_html($geo_result['country_name']) . ' (' . esc_html($geo_result['country_code']) . ')';
+                echo '</div>';
+            }
+            ?>
+            <form method="post" style="margin: 10px 0;">
+                <input type="hidden" name="test_geo" value="1">
+                <button type="submit" class="button button-secondary">🌐 Test Geolocalización</button>
             </form>
         </div>
         
@@ -599,46 +628,14 @@ function visitor_country_map_admin_page_html() {
 
 add_action('admin_init', 'visitor_country_map_settings_init');
 function visitor_country_map_settings_init() {
-    register_setting('visitor_country_map_options', 'visitor_country_map_maptiler_api_key', 'sanitize_text_field');
-
-    add_settings_section(
-        'visitor_country_map_section_api',
-        __('Configuración de API (Opcional)', 'visitor-country-map'),
-        null, 
-        'visitor_country_map_options'
-    );
-
-    add_settings_field(
-        'visitor_country_map_field_maptiler_api_key',
-        __('MapTiler API Key', 'visitor-country-map'),
-        'visitor_country_map_field_maptiler_api_key_cb',
-        'visitor_country_map_options',
-        'visitor_country_map_section_api',
-        ['label_for' => 'visitor_country_map_maptiler_api_key_id']
-    );
-}
-
-function visitor_country_map_field_maptiler_api_key_cb($args) {
-    $option = get_option('visitor_country_map_maptiler_api_key');
-    ?>
-    <input type="text" id="<?php echo esc_attr($args['label_for']); ?>"
-           name="visitor_country_map_maptiler_api_key"
-           value="<?php echo esc_attr($option); ?>"
-           class="regular-text"
-           placeholder="Tu API Key (opcional)">
-    <p class="description">
-        API Key opcional para funcionalidades futuras.
-    </p>
-    <?php
+    // Configuraciones futuras si son necesarias
 }
 
 // === DESINSTALACIÓN ===
 register_uninstall_hook(__FILE__, 'visitor_country_map_uninstall');
-function visitor_country_map_uninstall() {
-    global $wpdb;
+function visitor_country_map_uninstall() {    global $wpdb;
     $table_name = $wpdb->prefix . 'visitor_countries';
     $wpdb->query("DROP TABLE IF EXISTS $table_name");
-    delete_option('visitor_country_map_maptiler_api_key');
     delete_option('visitor_country_map_cache_duration');
     
     // Limpiar todos los transients

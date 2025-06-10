@@ -1,8 +1,13 @@
-# Visitor Country Map SVG - WordPress Plugin
+# Visitor Country Map SVG - WordPress Plugin v2.9
 
 ## Descripción
 
 Plugin de WordPress que muestra un mapa SVG interactivo destacando los top 5 países con más visitas de tu sitio web. El plugin registra automáticamente las visitas de cada país y proporciona una interfaz visual atractiva para mostrar estadísticas de visitantes.
+
+## Novedades v2.9
+- ✅ **Simplificado**: Eliminadas configuraciones de API no utilizadas 
+- ✅ **Optimizado**: Código más limpio y enfocado en funcionalidad principal
+- ✅ **Mejorado**: Panel de administración más directo y útil
 
 ## Características Principales
 

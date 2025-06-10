@@ -2,8 +2,14 @@
 
 ## Plugin Overview
 **Name:** Visitor Country Map - Top 5 SVG  
-**Version:** 2.8  
+**Version:** 2.9  
 **Status:** ✅ COMPLETE AND READY FOR PRODUCTION  
+
+## 🆕 Latest Changes (v2.9)
+- ✅ **Simplified Codebase**: Removed unused MapTiler API configuration
+- ✅ **Cleaner Admin Panel**: Eliminated unnecessary settings sections
+- ✅ **Focused Functionality**: Streamlined to core features only
+- ✅ **Improved Performance**: Reduced plugin overhead by removing unused code
 
 ## 🚀 Key Features Implemented
 
@@ -36,10 +42,10 @@
 ## 📁 File Structure
 ```
 visitor-country-map-svg/
-├── visitor-country-map-svg.php    # Main plugin file (651 lines)
+├── visitor-country-map-svg.php    # Main plugin file (610 lines - optimized)
 ├── js/visitor-svg-map.js          # Frontend JavaScript (223 lines)
 ├── world.svg                      # SVG world map with data-code attributes
-├── README.md                      # Complete documentation (210 lines)
+├── README.md                      # Complete documentation (updated v2.9)
 ├── DEPLOYMENT_CHECKLIST.md       # Testing and deployment guide
 ├── test_plugin.sh                 # Quick test script
 └── test.html                      # Development testing simulator
