@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test de Registro de Visitas Local</title>
+</head>
+<body>
+    <h1>🧪 Test de Registro de Visitas - WordPress Local</h1>
+    
+    <h2>Instrucciones:</h2>
+    <ol>
+        <li><strong>Asegúrate</strong> de que WordPress esté ejecutándose localmente</li>
+        <li><strong>Visita</strong> cualquier página de tu sitio (no el admin)</li>
+        <li><strong>Ve al panel:</strong> <code>Ajustes > Visitor Country Map</code></li>
+        <li><strong>Verifica</strong> si hay nuevas estadísticas</li>
+    </ol>
+    
+    <h2>💡 ¿Por qué debería funcionar?</h2>
+    <ul>
+        <li>✅ Tu IP local se detecta automáticamente</li>
+        <li>✅ Se reemplaza con una IP de prueba aleatoria</li>
+        <li>✅ Se consulta la geolocalización de esa IP</li>
+        <li>✅ Se registra el país en la base de datos</li>
+    </ul>
+    
+    <h2>🔍 Debug: Información de tu conexión</h2>
+    <script>
+        // Mostrar información del navegador
+        document.write('<p><strong>User Agent:</strong> ' + navigator.userAgent + '</p>');
+        document.write('<p><strong>Idioma:</strong> ' + navigator.language + '</p>');
+        
+        // Intentar obtener IP pública (para referencia)
+        fetch('https://api.ipify.org?format=json')
+            .then(response => response.json())
+            .then(data => {
+                document.write('<p><strong>Tu IP pública:</strong> ' + data.ip + '</p>');
+                document.write('<p><em>Nota: En localhost, WordPress verá tu IP local, no esta.</em></p>');
+            })
+            .catch(() => {
+                document.write('<p><strong>IP pública:</strong> No disponible (normal en localhost)</p>');
+            });
+    </script>
+    
+    <h2>🚨 Si NO se registran visitas:</h2>
+    <ol>
+        <li><strong>Verifica el log:</strong> Busca en <code>wp-content/debug.log</code></li>
+        <li><strong>Activa debug:</strong> En <code>wp-config.php</code> añade:
+            <pre>define('WP_DEBUG', true);
+define('WP_DEBUG_LOG', true);</pre>
+        </li>
+        <li><strong>Verifica hooks:</strong> Asegúrate de que el hook <code>wp</code> se ejecute</li>
+        <li><strong>Prueba directa:</strong> Usa el botón "Simular Visita" en el admin</li>
+    </ol>
+    
+    <h2>📊 Simulación Manual</h2>
+    <p>Si quieres forzar un registro inmediato, ve a:</p>
+    <p><strong>Admin WordPress > Ajustes > Visitor Country Map > 🌍 Simular Visita Aleatoria</strong></p>
+    
+    <h2>🎯 Resultado Esperado</h2>
+    <p>Después de navegar por tu sitio local, deberías ver en el admin:</p>
+    <ul>
+        <li>📊 <strong>Total de países registrados:</strong> 1 o más</li>
+        <li>🗃️ <strong>Tabla de BD:</strong> ✅ Existe</li>
+        <li>📈 <strong>Estadísticas:</strong> Lista con países y visitas</li>
+    </ul>
+</body>
+</html>
