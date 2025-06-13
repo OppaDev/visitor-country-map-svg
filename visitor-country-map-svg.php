@@ -1,12 +1,21 @@
 <?php
-/**
- * Plugin Name: Visitor Country Map - Top 5 SVG
+/** * Plugin Name: Visitor Country Map - Top 5 SVG
  * Plugin URI: https://tusitio.com/
  * Description: Muestra un mapa SVG interactivo resaltando el top 5 de países con más visitas y una leyenda, cargando el SVG desde un archivo.
- * Version: 2.9.2
- * Author: Tu Nombre (Versión Corregida)
+ * Version: 2.9.3
+ * Author: OppaDev
  * License: GPL2
- * * CORRECCIONES APLICADAS EN v2.9.2:
+ * 
+ * MEJORAS APLICADAS EN v2.9.3:
+ * ✅ Hoja de estilos CSS separada (css/visitor-country-map-styles.css)
+ * ✅ Eliminados estilos inline y bloques <style> embebidos
+ * ✅ Implementado wp_enqueue_style() y wp_add_inline_style()
+ * ✅ Mejor mantenibilidad y especificidad de CSS
+ * ✅ HTML más limpio y semántico con clases CSS apropiadas
+ * ✅ Soporte mejorado para modo oscuro y accesibilidad
+ * ✅ Estilos dinámicos basados en atributos del shortcode
+ * 
+ * CORRECCIONES APLICADAS EN v2.9.2:
  * ✅ Mapa SVG se visualiza correctamente en contenedor responsive
  * ✅ Geolocalización mejorada con múltiples APIs de respaldo
  * ✅ Sistema de conteo de visitas optimizado (evita duplicados por IP/día)
@@ -264,17 +273,38 @@ function visitor_country_map_shortcode_output($atts) {
     $atts = shortcode_atts(array(
         'height' => '600px', 
         'map_max_width' => '100%', 
-        'default_country_color' => '#E0E0E0', 
+        'default_country_color' => '#CBD5E1', // Gris claro elegante acorde con CEPEIGE
         'border_color' => '#FFFFFF', 
         'svg_file_name' => 'world.svg',
         'show_stats' => 'true',
         'animation' => 'true',
     ), $atts);
 
-    wp_enqueue_script('visitor-country-svg-map-script', plugin_dir_url(__FILE__) . 'js/visitor-svg-map.js', array('jquery'), '2.9.2', true);
+    // Encolar hoja de estilos CSS separada
+    wp_enqueue_style('visitor-country-map-style', plugin_dir_url(__FILE__) . 'css/visitor-country-map-styles.css', array(), '2.9.3');
+    
+    // Agregar estilos dinámicos basados en los atributos del shortcode
+    $custom_css = "
+        .visitor-country-map-wrapper { 
+            max-width: " . esc_attr($atts['map_max_width']) . "; 
+        }
+        .visitor-svg-map-container { 
+            height: " . esc_attr($atts['height']) . "; 
+        }
+    ";
+    wp_add_inline_style('visitor-country-map-style', $custom_css);
+
+    wp_enqueue_script('visitor-country-svg-map-script', plugin_dir_url(__FILE__) . 'js/visitor-svg-map.js', array('jquery'), '2.9.3', true);
     
     $top_countries_data = get_visitor_country_map_statistics(5);
-    $colors = ['#FF5733', '#33FF57', '#3357FF', '#FF33A1', '#F1C40F']; 
+    // Paleta de colores inspirada en CEPEIGE - naranja y azules corporativos
+    $colors = [
+        '#FF6B35', // Naranja principal CEPEIGE
+        '#1E3A8A', // Azul marino CEPEIGE  
+        '#3B82F6', // Azul claro CEPEIGE
+        '#60A5FA', // Azul accent CEPEIGE
+        '#FF8C42'  // Naranja claro complementario
+    ];
     
     $country_highlights_for_legend = [];
     $countries_to_color_js = [];
@@ -335,166 +365,52 @@ function visitor_country_map_shortcode_output($atts) {
         if (current_user_can('manage_options')) {
             $svg_map_html .= '<p>Ruta esperada: <code>' . esc_html($svg_file_path) . '</code></p>';
         }
-    }
-
-    ob_start();
-    ?>    <div class="visitor-country-map-wrapper" style="width: 100%; max-width: <?php echo esc_attr($atts['map_max_width']); ?>; margin: 0 auto;">
-        <div class="visitor-map-main-container" style="display: flex; gap: 20px; align-items: flex-start;">
-            <div class="visitor-svg-map-container" style="flex: 2; height: <?php echo esc_attr($atts['height']); ?>; background: #f8f9fa; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    }    ob_start();
+    ?>
+    <div class="visitor-country-map-wrapper">
+        <div class="visitor-map-main-container">
+            <div class="visitor-svg-map-container">
                 <?php echo $svg_map_html; ?>
             </div>
             
             <?php if ($atts['show_stats'] === 'true'): ?>
-            <div class="visitor-country-map-legend" style="flex: 1; min-width: 300px; padding: 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border: 1px solid #dee2e6; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); height: fit-content;">
-                <h3 style="margin-top: 0; margin-bottom: 20px; font-size: 1.1em; color: #333; text-align: center; border-bottom: 2px solid #007cba; padding-bottom: 10px;">🌍 Top 5 Países</h3>
-              <?php if ($total_visits > 0): ?>
-            <div style="margin-bottom: 15px; text-align: center; color: #666; font-size: 0.9em;">
-                <strong>Total: <?php echo number_format($total_visits); ?> visitas</strong>
+            <div class="visitor-country-map-legend">
+                <h3>🌍 Top 5 Países</h3>
+                <?php if ($total_visits > 0): ?>
+                <div class="total-visits">
+                    <strong>Total: <?php echo number_format($total_visits); ?> visitas</strong>
+                </div>
+                <?php endif; ?>
+
+                <ul id="visitor-map-top-list">
+                    <?php if (empty($country_highlights_for_legend)): ?>
+                        <li class="no-data">
+                            <em>Sin datos aún</em>
+                        </li>
+                    <?php else: ?>
+                        <?php foreach ($country_highlights_for_legend as $index => $country): ?>
+                            <li data-country="<?php echo esc_attr($country['code']); ?>">
+                                <span class="country-color-indicator" style="background-color: <?php echo esc_attr($country['color']); ?>;"></span>
+                                <div class="country-info">
+                                    <div class="country-name"><?php echo esc_html($country['name']); ?></div>
+                                    <div class="country-stats">
+                                        <?php echo esc_html(number_format($country['visits'])); ?> visita<?php echo ($country['visits'] !== 1) ? 's' : ''; ?>
+                                        <?php if ($total_visits > 0): ?>
+                                            <span class="country-percentage">(<?php echo number_format(($country['visits'] / $total_visits) * 100, 1); ?>%)</span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <div class="country-rank">
+                                    #<?php echo $index + 1; ?>
+                                </div>
+                            </li>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </ul>
             </div>
             <?php endif; ?>
-
-            <ul id="visitor-map-top-list" style="list-style: none; padding: 0; margin: 0;">
-                <?php if (empty($country_highlights_for_legend)): ?>
-                    <li style="color: #777; text-align: center; padding: 20px; font-size: 0.9em;">
-                        <em>Sin datos aún</em>
-                    </li>
-                <?php else: ?>
-                    <?php foreach ($country_highlights_for_legend as $index => $country): ?>
-                        <li data-country="<?php echo esc_attr($country['code']); ?>" style="margin-bottom: 10px; display: flex; align-items: center; font-size: 0.85em; padding: 8px; background: rgba(255,255,255,0.7); border-radius: 6px; transition: all 0.3s ease; cursor: pointer;">
-                            <span style="display: inline-block; width: 20px; height: 20px; background-color: <?php echo esc_attr($country['color']); ?>; margin-right: 10px; border: 2px solid #fff; border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); flex-shrink: 0;"></span>
-                            <div style="flex: 1; min-width: 0;">
-                                <div style="font-weight: bold; color: #333; font-size: 0.95em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo esc_html($country['name']); ?></div>
-                                <div style="color: #666; font-size: 0.8em; margin-top: 1px;">
-                                    <?php echo esc_html(number_format($country['visits'])); ?> visita<?php echo ($country['visits'] !== 1) ? 's' : ''; ?>
-                                    <?php if ($total_visits > 0): ?>
-                                        <span style="color: #007cba;">(<?php echo number_format(($country['visits'] / $total_visits) * 100, 1); ?>%)</span>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                            <div style="color: #007cba; font-weight: bold; font-size: 1em; margin-left: 8px; flex-shrink: 0;">
-                                #<?php echo $index + 1; ?>
-                            </div>
-                        </li>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </ul>
         </div>
-        <?php endif; ?>
-        </div>
-    </div>
-      <style>
-        .visitor-country-map-wrapper {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        
-        .visitor-map-main-container {
-            display: flex !important;
-            gap: 20px !important;
-            align-items: flex-start !important;
-        }
-        
-        .svg-container {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .svg-container svg {
-            max-width: 100%;
-            max-height: 100%;
-            width: auto;
-            height: auto;
-        }
-        
-        .visitor-map-tooltip {
-            position: absolute;
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            z-index: 1000;
-            pointer-events: none;
-            display: none;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            max-width: 200px;
-        }
-        
-        .visitor-country-map-legend li:hover {
-            background: rgba(255,255,255,0.9) !important;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        }
-        
-        .visitor-country-map-legend li.highlighted {
-            background: rgba(0, 124, 186, 0.1) !important;
-            border-left: 4px solid #007cba;
-        }
-        
-        /* Responsive Design */
-        @media (max-width: 1024px) {
-            .visitor-map-main-container {
-                flex-direction: column !important;
-                gap: 15px !important;
-            }
-            
-            .visitor-svg-map-container {
-                height: 400px !important;
-            }
-            
-            .visitor-country-map-legend {
-                min-width: auto !important;
-                width: 100% !important;
-            }
-            
-            .visitor-country-map-legend h3 {
-                font-size: 1.1em !important;
-            }
-        }
-        
-        @media (max-width: 768px) {
-            .visitor-svg-map-container {
-                height: 300px !important;
-            }
-            
-            .visitor-country-map-legend {
-                padding: 15px !important;
-            }
-            
-            .visitor-country-map-legend li {
-                padding: 6px !important;
-                font-size: 0.8em !important;
-            }
-            
-            .visitor-country-map-legend li span {
-                width: 16px !important;
-                height: 16px !important;
-                margin-right: 8px !important;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .visitor-map-main-container {
-                gap: 10px !important;
-            }
-            
-            .visitor-svg-map-container {
-                height: 250px !important;
-            }
-            
-            .visitor-country-map-legend {
-                padding: 12px !important;
-            }
-            
-            .visitor-country-map-legend h3 {
-                font-size: 1em !important;
-                margin-bottom: 15px !important;
-            }
-        }
-    </style>
-    <?php
+    </div>    <?php
     return ob_get_clean();
 }
 add_shortcode('visitor_country_map', 'visitor_country_map_shortcode_output'); 

@@ -1,0 +1,547 @@
+/* 
+ * Visitor Country Map - Top 5 SVG Styles
+ * Version: 2.9.3
+ * Author: OppaDev
+ * Paleta de colores basada en la marca CEPEIGE
+ */
+
+/* === VARIABLES CSS PARA PALETA DE COLORES CEPEIGE === */
+:root {
+    /* Colores principales de CEPEIGE */
+    --cepeige-primary-orange: #FF6B35;     /* Naranja principal del logo */
+    --cepeige-primary-blue: #1E3A8A;      /* Azul marino del globo */
+    --cepeige-secondary-blue: #3B82F6;    /* Azul claro del globo */
+    --cepeige-accent-blue: #60A5FA;       /* Azul claro para acentos */
+    
+    /* Colores de soporte */
+    --cepeige-white: #FFFFFF;
+    --cepeige-light-gray: #F8FAFC;
+    --cepeige-medium-gray: #64748B;
+    --cepeige-dark-gray: #374151;
+    --cepeige-very-dark: #1F2937;
+    
+    /* Gradientes corporativos */
+    --cepeige-gradient-primary: linear-gradient(135deg, var(--cepeige-primary-orange) 0%, #FF8C42 100%);
+    --cepeige-gradient-secondary: linear-gradient(135deg, var(--cepeige-primary-blue) 0%, var(--cepeige-secondary-blue) 100%);
+    --cepeige-gradient-bg: linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%);
+    
+    /* Sombras corporativas */
+    --cepeige-shadow-light: 0 2px 10px rgba(30, 58, 138, 0.1);
+    --cepeige-shadow-medium: 0 4px 20px rgba(30, 58, 138, 0.15);
+    --cepeige-shadow-strong: 0 8px 30px rgba(30, 58, 138, 0.2);
+}
+
+/* === CONTENEDOR PRINCIPAL === */
+.visitor-country-map-wrapper {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* === CONTENEDOR DEL MAPA === */
+.visitor-map-main-container {
+    display: flex !important;
+    gap: 20px !important;
+    align-items: flex-start !important;
+}
+
+.visitor-svg-map-container {
+    flex: 2;
+    background: var(--cepeige-gradient-bg);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--cepeige-shadow-medium);
+    border: 1px solid rgba(30, 58, 138, 0.1);
+}
+
+.visitor-svg-map-container .svg-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.visitor-svg-map-container .svg-container svg {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+}
+
+/* === LEYENDA Y ESTADÍSTICAS === */
+.visitor-country-map-legend {
+    flex: 1;
+    min-width: 300px;
+    padding: 24px;
+    background: var(--cepeige-gradient-bg);
+    border: 2px solid var(--cepeige-primary-orange);
+    border-radius: 16px;
+    box-shadow: var(--cepeige-shadow-medium);
+    height: fit-content;
+    position: relative;
+}
+
+.visitor-country-map-legend::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--cepeige-gradient-primary);
+    border-radius: 16px 16px 0 0;
+}
+
+.visitor-country-map-legend h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 1.2em;
+    color: var(--cepeige-primary-blue);
+    text-align: center;
+    border-bottom: 2px solid var(--cepeige-primary-orange);
+    padding-bottom: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.visitor-country-map-legend .total-visits {
+    margin-bottom: 18px;
+    text-align: center;
+    color: var(--cepeige-medium-gray);
+    font-size: 0.95em;
+    background: var(--cepeige-white);
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--cepeige-accent-blue);
+    font-weight: 600;
+}
+
+/* === LISTA DEL TOP 5 === */
+#visitor-map-top-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#visitor-map-top-list li {
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    font-size: 0.9em;
+    padding: 12px 16px;
+    background: var(--cepeige-white);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 1px solid rgba(30, 58, 138, 0.1);
+    box-shadow: var(--cepeige-shadow-light);
+}
+
+#visitor-map-top-list li:hover {
+    background: var(--cepeige-white) !important;
+    transform: translateY(-2px);
+    box-shadow: var(--cepeige-shadow-medium);
+    border-color: var(--cepeige-primary-orange);
+}
+
+#visitor-map-top-list li.highlighted {
+    background: rgba(255, 107, 53, 0.1) !important;
+    border-left: 4px solid var(--cepeige-primary-orange);
+    box-shadow: var(--cepeige-shadow-medium);
+}
+
+#visitor-map-top-list li.no-data {
+    color: var(--cepeige-medium-gray);
+    text-align: center;
+    padding: 24px;
+    font-size: 0.95em;
+    font-style: italic;
+    background: var(--cepeige-light-gray);
+    border: 2px dashed var(--cepeige-accent-blue);
+}
+
+/* === ELEMENTOS DE LA LISTA === */
+.country-color-indicator {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    margin-right: 12px;
+    border: 2px solid var(--cepeige-white);
+    border-radius: 6px;
+    box-shadow: var(--cepeige-shadow-light);
+    flex-shrink: 0;
+    position: relative;
+}
+
+.country-color-indicator::after {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    right: -1px;
+    bottom: -1px;
+    border: 1px solid rgba(30, 58, 138, 0.2);
+    border-radius: 6px;
+    pointer-events: none;
+}
+
+.country-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.country-name {
+    font-weight: 700;
+    color: var(--cepeige-primary-blue);
+    font-size: 1em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.country-stats {
+    color: var(--cepeige-medium-gray);
+    font-size: 0.85em;
+    margin-top: 2px;
+    font-weight: 500;
+}
+
+.country-percentage {
+    color: var(--cepeige-primary-orange);
+    font-weight: 600;
+}
+
+.country-rank {
+    color: var(--cepeige-primary-blue);
+    font-weight: 800;
+    font-size: 1.1em;
+    margin-left: 12px;
+    flex-shrink: 0;
+    background: var(--cepeige-gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* === TOOLTIP === */
+.visitor-map-tooltip {
+    position: absolute;
+    background: var(--cepeige-gradient-secondary);
+    color: var(--cepeige-white);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    z-index: 1000;
+    pointer-events: none;
+    display: none;
+    box-shadow: var(--cepeige-shadow-strong);
+    max-width: 220px;
+    border: 1px solid var(--cepeige-primary-orange);
+    font-weight: 500;
+}
+
+/* === DETALLES DEL PAÍS === */
+.country-details {
+    margin-top: 20px;
+}
+
+.country-details hr {
+    margin: 20px 0;
+    border: none;
+    border-top: 2px solid var(--cepeige-accent-blue);
+    opacity: 0.6;
+}
+
+.country-details h4 {
+    margin: 12px 0;
+    color: var(--cepeige-primary-blue);
+    font-size: 1.05em;
+    font-weight: 700;
+}
+
+.country-detail-card {
+    background: var(--cepeige-white);
+    padding: 16px;
+    border-radius: 10px;
+    border-left: 4px solid var(--cepeige-primary-orange);
+    box-shadow: var(--cepeige-shadow-light);
+    border: 1px solid rgba(30, 58, 138, 0.1);
+}
+
+.country-detail-name {
+    color: var(--cepeige-primary-blue);
+    font-weight: 700;
+    font-size: 1.1em;
+}
+
+.country-detail-stats {
+    color: var(--cepeige-medium-gray);
+    margin-top: 8px;
+    font-weight: 500;
+}
+
+/* === ESTADOS SIN DATOS === */
+.no-stats-message {
+    text-align: center;
+    color: #777;
+    font-style: italic;
+}
+
+.no-stats-tip {
+    font-size: 0.85em;
+    color: #666;
+    margin-top: 10px;
+}
+
+/* === RESPONSIVE DESIGN === */
+
+/* Tablets y pantallas medianas */
+@media (max-width: 1024px) {
+    .visitor-map-main-container {
+        flex-direction: column !important;
+        gap: 15px !important;
+    }
+    
+    .visitor-svg-map-container {
+        height: 400px !important;
+    }
+    
+    .visitor-country-map-legend {
+        min-width: auto !important;
+        width: 100% !important;
+    }
+    
+    .visitor-country-map-legend h3 {
+        font-size: 1.1em !important;
+    }
+}
+
+/* Móviles */
+@media (max-width: 768px) {
+    .visitor-svg-map-container {
+        height: 300px !important;
+    }
+    
+    .visitor-country-map-legend {
+        padding: 15px !important;
+    }
+    
+    .visitor-country-map-legend li {
+        padding: 6px !important;
+        font-size: 0.8em !important;
+    }
+    
+    .country-color-indicator {
+        width: 16px !important;
+        height: 16px !important;
+        margin-right: 8px !important;
+    }
+}
+
+/* Móviles pequeños */
+@media (max-width: 480px) {
+    .visitor-map-main-container {
+        gap: 10px !important;
+    }
+    
+    .visitor-svg-map-container {
+        height: 250px !important;
+    }
+    
+    .visitor-country-map-legend {
+        padding: 12px !important;
+    }
+    
+    .visitor-country-map-legend h3 {
+        font-size: 1em !important;
+        margin-bottom: 15px !important;
+    }
+}
+
+/* === ANIMACIONES Y TRANSICIONES === */
+.visitor-svg-map-container,
+.visitor-country-map-legend,
+#visitor-map-top-list li {
+    transition: all 0.3s ease;
+}
+
+/* Mejoras de accesibilidad */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+/* === MODO OSCURO CEPEIGE === */
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* Ajustes para modo oscuro manteniendo la identidad CEPEIGE */
+        --cepeige-dark-bg: #0F172A;
+        --cepeige-dark-card: #1E293B;
+        --cepeige-dark-border: #334155;
+        --cepeige-dark-text: #F1F5F9;
+        --cepeige-dark-text-secondary: #94A3B8;
+    }
+    
+    .visitor-country-map-legend {
+        background: var(--cepeige-dark-card);
+        border-color: var(--cepeige-primary-orange);
+        color: var(--cepeige-dark-text);
+    }
+    
+    .visitor-country-map-legend h3 {
+        color: var(--cepeige-white);
+        border-bottom-color: var(--cepeige-primary-orange);
+    }
+    
+    #visitor-map-top-list li {
+        background: var(--cepeige-dark-card);
+        color: var(--cepeige-dark-text);
+        border-color: var(--cepeige-dark-border);
+    }
+    
+    #visitor-map-top-list li:hover {
+        background: var(--cepeige-dark-bg) !important;
+        border-color: var(--cepeige-primary-orange);
+    }
+    
+    .country-name {
+        color: var(--cepeige-accent-blue);
+    }
+    
+    .country-stats {
+        color: var(--cepeige-dark-text-secondary);
+    }
+    
+    .country-detail-card {
+        background: var(--cepeige-dark-card);
+        color: var(--cepeige-dark-text);
+        border-color: var(--cepeige-dark-border);
+    }
+    
+    .visitor-svg-map-container {
+        background: var(--cepeige-dark-bg);
+        border-color: var(--cepeige-dark-border);
+    }
+    
+    .visitor-country-map-legend .total-visits {
+        background: var(--cepeige-dark-card);
+        color: var(--cepeige-dark-text);
+        border-color: var(--cepeige-accent-blue);
+    }
+}
+
+/* === ELEMENTOS ADICIONALES MARCA CEPEIGE === */
+
+/* Logo corporativo en el título */
+.visitor-country-map-legend h3::before {
+    content: '🌍';
+    margin-right: 8px;
+    font-size: 1.2em;
+    filter: hue-rotate(25deg);
+}
+
+/* Efectos visuales corporativos */
+.visitor-country-map-wrapper::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: var(--cepeige-gradient-primary);
+    border-radius: 18px;
+    z-index: -1;
+    opacity: 0.1;
+    pointer-events: none;
+}
+
+.visitor-country-map-wrapper {
+    position: relative;
+}
+
+/* Indicadores de marca corporativa */
+.country-rank::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 2px;
+    background: var(--cepeige-gradient-primary);
+    border-radius: 2px;
+    opacity: 0.7;
+}
+
+.country-rank {
+    position: relative;
+}
+
+/* Mejoras de accesibilidad corporativas */
+@media (prefers-reduced-motion: reduce) {
+    .visitor-country-map-legend::before,
+    .visitor-country-map-wrapper::before,
+    .country-rank::after {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* Animación sutil para carga */
+@keyframes cepeige-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.visitor-country-map-wrapper {
+    animation: cepeige-fade-in 0.6s ease-out;
+}
+
+#visitor-map-top-list li {
+    animation: cepeige-fade-in 0.4s ease-out;
+    animation-fill-mode: backwards;
+}
+
+#visitor-map-top-list li:nth-child(1) { animation-delay: 0.1s; }
+#visitor-map-top-list li:nth-child(2) { animation-delay: 0.2s; }
+#visitor-map-top-list li:nth-child(3) { animation-delay: 0.3s; }
+#visitor-map-top-list li:nth-child(4) { animation-delay: 0.4s; }
+#visitor-map-top-list li:nth-child(5) { animation-delay: 0.5s; }
+
+/* Elementos de marca en alta resolución */
+@media (min-resolution: 2dppx) {
+    .country-color-indicator {
+        border-width: 1.5px;
+    }
+    
+    .visitor-country-map-legend {
+        border-width: 1.5px;
+    }
+}
+
+/* Versión impresa con colores CEPEIGE */
+@media print {
+    .visitor-country-map-wrapper {
+        box-shadow: none !important;
+        border: 2px solid var(--cepeige-primary-blue) !important;
+    }
+    
+    .visitor-country-map-legend {
+        background: white !important;
+        border: 1px solid var(--cepeige-primary-blue) !important;
+    }
+    
+    .visitor-country-map-legend h3 {
+        color: var(--cepeige-primary-blue) !important;
+    }
+}
