@@ -94,14 +94,12 @@ function get_visitor_country_map_country_details() {
         $ip = $test_ips[array_rand($test_ips)];
         error_log("Visitor Map: Using test IP for local development: " . $ip);
     }
-    
-    // Intentar múltiples servicios de geolocalización
+    // Priorizar APIs que devuelven nombre
     $services = [
         "http://ip-api.com/json/{$ip}?fields=status,country,countryCode",
         "https://ipapi.co/{$ip}/json/",
         "https://api.country.is/{$ip}"
     ];
-    
     foreach ($services as $service_url) {
         $response = wp_remote_get($service_url, array(
             'timeout' => 10,
@@ -147,9 +145,30 @@ function get_visitor_country_map_country_details() {
                 'ES' => 'Spain', 'AU' => 'Australia', 'ID' => 'Indonesia', 'MX' => 'Mexico',
                 'BR' => 'Brazil', 'FR' => 'France', 'DE' => 'Germany', 'GB' => 'United Kingdom',
                 'CA' => 'Canada', 'IN' => 'India', 'CN' => 'China', 'RU' => 'Russia',
-                'JP' => 'Japan', 'IT' => 'Italy', 'NL' => 'Netherlands', 'SE' => 'Sweden'
+                'JP' => 'Japan', 'IT' => 'Italy', 'NL' => 'Netherlands', 'SE' => 'Sweden',
+                'EC' => 'Ecuador', 'CL' => 'Chile', 'VE' => 'Venezuela', 'UY' => 'Uruguay',
+                'BO' => 'Bolivia', 'PY' => 'Paraguay', 'CR' => 'Costa Rica', 'GT' => 'Guatemala',
+                'SV' => 'El Salvador', 'HN' => 'Honduras', 'NI' => 'Nicaragua', 'PA' => 'Panama',
+                'DO' => 'Dominican Republic', 'CU' => 'Cuba', 'PR' => 'Puerto Rico', 'SR' => 'Suriname',
+                'GF' => 'French Guiana', 'GY' => 'Guyana'
             ];
-            $country_name = $country_names[$country_code] ?? $country_code;
+            if (isset($country_names[$country_code])) {
+                $country_name = $country_names[$country_code];
+            } else {
+                // Buscar en archivo JSON completo
+                $json_path = plugin_dir_path(__FILE__) . 'country-names.json';
+                if (file_exists($json_path)) {
+                    $json = file_get_contents($json_path);
+                    $all_names = json_decode($json, true);
+                    if (isset($all_names[$country_code])) {
+                        $country_name = $all_names[$country_code];
+                    } else {
+                        $country_name = $country_code;
+                    }
+                } else {
+                    $country_name = $country_code;
+                }
+            }
         }
         
         if (!empty($country_code) && !empty($country_name) && $country_code !== 'XX') {
